@@ -1,0 +1,14 @@
+# Virtual Environment
+venv
+
+#Environment
+.env.development
+
+#IDE
+.vscode
+*__pycache__
+
+#Deploy
+passenger_wsgi.py
+
+#App
