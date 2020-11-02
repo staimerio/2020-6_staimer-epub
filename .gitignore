@@ -3,6 +3,7 @@ venv
 
 #Environment
 .env.development
+.env.production
 
 #IDE
 .vscode

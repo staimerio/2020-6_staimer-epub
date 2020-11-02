@@ -28,6 +28,7 @@ def build_from_html(req: Request, res: Response, next: Next):
         req.param('cover'),
         req.param('sections'),
         req.param('binary_response'),
+        req.param('resources'),
     )
 
     """Check if error exists"""

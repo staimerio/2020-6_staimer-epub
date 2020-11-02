@@ -12,6 +12,15 @@ import os
 # Binascii
 import binascii
 
+# PIL
+from PIL import Image
+
+# Asyncio
+import asyncio
+
+# Aiohttp
+import aiohttp
+
 # Services
 from retic.services.general.urls import slugify
 from retic.services.responses import success_response_service, error_response_service
@@ -26,7 +35,7 @@ EPUB_OUT_PATH = app.config.get('EPUB_OUT_PATH')
 EPUB_CSS_STYLE = '''@namespace epub "http://www.idpf.org/2007/ops";body{font-family:Cambria,Liberation Serif,Bitstream Vera Serif,Georgia,Times,Times New Roman,serif}h2{text-align:left;text-transform:uppercase;font-weight:200}ol{list-style-type:none}ol>li:first-child{margin-top:.3em}nav[epub|type~=toc]>ol>li>ol{list-style-type:square}nav[epub|type~=toc]>ol>li>ol>li{margin-top:.3em}'''
 
 
-def build_from_html(title, cover, sections, binary_response=False):
+def build_from_html(title, cover, sections, binary_response=False, resources=[]):
     """Build a epub file from html content with a section list
 
     :param title: Title of the book
@@ -99,6 +108,24 @@ def build_from_html(title, cover, sections, binary_response=False):
         EPUB_OUT_PATH,
         _book.uid
     )
+
+    async def add_resource(_resource):
+        """Add resources"""
+        if _resource['type'] == 'image_url':
+            _image_item = await get_resource_image_item(
+                _resource['url'],
+                _resource['file_name'],
+                _resource.get('headers')
+            )
+            # add Image file
+            _book.add_item(_image_item)
+
+    async def main():
+        promises = [add_resource(_resource)
+                    for _resource in resources]
+        await asyncio.gather(*promises)
+
+    asyncio.run(main())
     """Write epub file"""
     epub.write_epub(_out_fname, _book, {})
     """Get size of file"""
@@ -112,7 +139,7 @@ def build_from_html(title, cover, sections, binary_response=False):
     else:
         _data_b64 = None
     """Delete file"""
-    rmfile(_out_fname)
+    # rmfile(_out_fname)
     """Transform name"""
     if not title:
         title = _book.uid
@@ -165,3 +192,29 @@ def get_content_from_file(fname):
     _book.close()
     """Return data"""
     return _content
+
+
+async def get_resource_image_item(url, file_name, headers={}):
+    # load Image file
+    _binary_image = await get_download_item_req(url, headers)
+    """Check that this one havenot errors"""
+    if not _binary_image:
+        return None
+    # define Image file path in .epub
+    _image_item = epub.EpubItem(
+        uid=file_name, file_name='images/{0}'.format(file_name), content=_binary_image['binary'])
+    return _image_item
+
+
+async def get_download_item_req(url, headers):
+    """Download items asynchronously"""
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url=url, headers=headers) as response:
+            _downloaded_item = await response.read()
+            if _downloaded_item:
+                return {
+                    u'binary': _downloaded_item,
+                    u'filename': url.split('/')[-1]
+                }
+            else:
+                return None
