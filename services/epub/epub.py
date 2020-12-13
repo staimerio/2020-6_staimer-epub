@@ -28,6 +28,9 @@ from retic.services.responses import success_response_service, error_response_se
 # Utils
 from services.general.general import rmfile
 
+# Requets
+import requests
+
 # Constants
 EPUB_BOOK_LANG = app.config.get('EPUB_BOOK_LANG')
 EPUB_BOOK_AUTHOR = app.config.get('EPUB_BOOK_AUTHOR')
@@ -109,10 +112,27 @@ def build_from_html(title, cover, sections, binary_response=False, resources=[])
         _book.uid
     )
 
-    async def add_resource(_resource):
+    # async def add_resource(_resource):
+    #     """Add resources"""
+    #     if _resource['type'] == 'image_url':
+    #         _image_item = await get_resource_image_item(
+    #             _resource['url'],
+    #             _resource['file_name'],
+    #             _resource.get('headers')
+    #         )
+    #         # add Image file
+    #         _book.add_item(_image_item)
+
+    # async def main():
+    #     promises = [add_resource(_resource)
+    #                 for _resource in resources]
+    #     await asyncio.gather(*promises)
+
+    # asyncio.run(main())
+    for _resource in resources:
         """Add resources"""
         if _resource['type'] == 'image_url':
-            _image_item = await get_resource_image_item(
+            _image_item = sync_get_resource_image_item(
                 _resource['url'],
                 _resource['file_name'],
                 _resource.get('headers')
@@ -120,12 +140,6 @@ def build_from_html(title, cover, sections, binary_response=False, resources=[])
             # add Image file
             _book.add_item(_image_item)
 
-    async def main():
-        promises = [add_resource(_resource)
-                    for _resource in resources]
-        await asyncio.gather(*promises)
-
-    asyncio.run(main())
     """Write epub file"""
     epub.write_epub(_out_fname, _book, {})
     """Get size of file"""
@@ -139,7 +153,7 @@ def build_from_html(title, cover, sections, binary_response=False, resources=[])
     else:
         _data_b64 = None
     """Delete file"""
-    # rmfile(_out_fname)
+    rmfile(_out_fname)
     """Transform name"""
     if not title:
         title = _book.uid
@@ -218,3 +232,16 @@ async def get_download_item_req(url, headers):
                 }
             else:
                 return None
+
+
+def sync_get_resource_image_item(url, file_name, headers={}):
+    # load Image file
+
+    _binary_image = requests.get(url, headers=headers)
+    """Check that this one havenot errors"""
+    if _binary_image.status_code != 200:
+        return None
+    # define Image file path in .epub
+    _image_item = epub.EpubItem(
+        uid=file_name, file_name='images/{0}'.format(file_name), content=_binary_image.content)
+    return _image_item
