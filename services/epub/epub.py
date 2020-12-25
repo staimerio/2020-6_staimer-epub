@@ -22,11 +22,10 @@ import asyncio
 import aiohttp
 
 # Services
-from retic.services.general.urls import slugify
 from retic.services.responses import success_response_service, error_response_service
 
 # Utils
-from services.general.general import rmfile
+from services.general.general import rmfile, slugify
 
 # Requets
 import requests
