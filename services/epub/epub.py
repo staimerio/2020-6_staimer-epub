@@ -136,8 +136,9 @@ def build_from_html(title, cover, sections, binary_response=False, resources=[])
                 _resource['file_name'],
                 _resource.get('headers')
             )
-            # add Image file
-            _book.add_item(_image_item)
+            if _image_item:
+                # add Image file
+                _book.add_item(_image_item)
 
     """Write epub file"""
     epub.write_epub(_out_fname, _book, {})
